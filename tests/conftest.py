@@ -2,18 +2,65 @@ import allure
 import pytest
 from allure_commons.types import AttachmentType
 from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from typing import Generator
+
+
+# CLI options: pytest --browser=firefox --headless
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--browser", action="store", default="chrome", help="Browser to run tests: chrome or firefox"
+    )
+    parser.addoption(
+        "--headless", action="store_true", default=False, help="Run browser in headless mode"
+    )
+
+# check if a test failed (needed for conditional screenshots)
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> Generator:
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, "rep_" + rep.when, rep)
 
 
 @pytest.fixture()
-def browser():
-    browser = webdriver.Chrome(ChromeDriverManager().install())
-    # wait 10 seconds to pull the DOM
-    browser.implicitly_wait(10)
-    # maximize browser window to full screen
-    browser.maximize_window()
-    yield browser
-    # make a screenshot before closing the browser
-    allure.attach(browser.get_screenshot_as_png(), name="Screenshot", attachment_type=AttachmentType.PNG)
-    # when test is done, close ALL windows of the browser
-    browser.quit()
+def browser(request: pytest.FixtureRequest) -> Generator[webdriver.Remote, None, None]:
+    browser_name = request.config.getoption("--browser")
+    headless = request.config.getoption("--headless")
+    driver: webdriver.Remote
+
+    # Cross-browser support
+    if browser_name.lower() == "chrome":
+        options = ChromeOptions()
+        if headless:
+            options.add_argument("--headless=new")
+        options.add_argument("--window-size=1920,1080")
+        driver = webdriver.Chrome(options=options)
+    elif browser_name.lower() == "firefox":
+        options = FirefoxOptions()
+        if headless:
+            options.add_argument("-headless")
+        driver = webdriver.Firefox(options=options)
+    else:
+        raise ValueError(f"Unsupported browser: {browser_name}")
+
+    driver.maximize_window()
+    yield driver
+
+    # Only attach screenshot if the test FAILED
+    if hasattr(request.node, "rep_call") and request.node.rep_call.failed:
+        allure.attach(
+            driver.get_screenshot_as_png(),
+            name=f"Failure_Screenshot_{browser_name}",
+            attachment_type=AttachmentType.PNG,
+        )
+        # Attach browser logs on failure
+        try:
+            log = "".join([f"{entry['level']}: {entry['message']}\n" for entry in driver.get_log('browser')])
+            allure.attach(log, name="Browser_Console_Logs", attachment_type=AttachmentType.TEXT)
+        except Exception:
+            pass  # Firefox doesn't support get_log('browser') the same way
+
+    # When test is done, close ALL windows of the browser
+    driver.quit()

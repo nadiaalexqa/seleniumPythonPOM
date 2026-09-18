@@ -1,26 +1,26 @@
 import pytest
+from selenium.webdriver.remote.webdriver import WebDriver
 from pages.home_page import AmazonHomePage
 from pages.search_result_page import AmazonSearchResultPage
-
 
 @pytest.mark.parametrize("item", [
     "nike air max",
     "reebok crossfit shoes men",
     "puma sneakers",
-    "adidas classic shoes"])
+    "adidas classic shoes"
+])
 @pytest.mark.regressiontest
-def test_search_multiple_items(browser, item):
+def test_search_multiple_items(browser: WebDriver, item: str) -> None:
+    """Verify search functionality for multiple items using parametrization."""
     home_page = AmazonHomePage(browser)
     search_result_page = AmazonSearchResultPage(browser)
 
-    # navigate to Amazon.com home page
+    # Navigate to home page and verify
     home_page.load_page()
-
-    # verify that web page title is Amazon.com
     home_page.verify_title()
 
-    # search for item
+    # Search for item
     home_page.search_item(item)
 
-    # verify that web page title contains your search item
+    # Verify search results page title
     search_result_page.verify_title(item)

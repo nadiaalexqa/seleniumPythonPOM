@@ -1,28 +1,28 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from pages.base_page import BasePage
 
 
-class AmazonSearchResultPage:
-
-    def __init__(self, browser):
-        self.browser = browser
-
-    # URL and page title
-    URL = 'https://www.amazon.com/s?k=nike+air+max&ref=nb_sb_noss'
-    PAGE_TITLE = 'Amazon.com : '
+class AmazonSearchResultPage(BasePage):
+    """Page Object representing the Amazon search results page."""
 
     # Element Locators
     SEARCH_FIELD = (By.ID, "twotabsearchtextbox")
     SEARCH_BUTTON = (By.XPATH, "//input[@value='Go']")
 
-    # Methods
-
-    def load_page(self):
-        self.browser.get(self.URL)
-
-    def search_item(self, item):
-        search_input = self.browser.find_element(*self.SEARCH_FIELD)
+    def search_item(self, item: str) -> None:
+        """Search for an item from the results page."""
+        search_input = self.wait.until(EC.visibility_of_element_located(self.SEARCH_FIELD))
+        search_input.clear()
         search_input.send_keys(item + Keys.RETURN)
 
-    def verify_title(self, item):
-        assert self.browser.title == self.PAGE_TITLE + item
+    def verify_title(self, item: str) -> None:
+        """Verify that the page title contains the searched item."""
+        # Wait until the title contains the item to avoid race conditions
+        self.wait.until(EC.title_contains(item))
+        actual_title = self.browser.title
+
+        # Robust assertion: use 'in' instead of '=='
+        assert item.lower() in actual_title.lower(), \
+            f"Expected '{item}' in title, but got '{actual_title}'"

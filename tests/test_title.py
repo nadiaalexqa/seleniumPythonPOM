@@ -1,12 +1,14 @@
 import pytest
+from selenium.webdriver.remote.webdriver import WebDriver
 from pages.home_page import AmazonHomePage
 
 @pytest.mark.smoketest
-def test_amazon_title(browser):
+def test_amazon_title(browser: WebDriver) -> None:
+    """Verify that the Amazon home page title is correct."""
     home_page = AmazonHomePage(browser)
 
-    # navigate to Amazon home page
+    # Navigate to Amazon home page
     home_page.load_page()
 
-    # verify Amazon home page title is matching expected title
+    # Verify Amazon home page title contains expected keyword
     home_page.verify_title()

@@ -1,0 +1,22 @@
+[project]
+name = "seleniumpythonpom"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "allure-pytest>=2.16.0",
+    "allure-python-commons>=2.16.0",
+    "mypy>=2.3.1",
+    "pylint>=3.0",
+    "pytest>=9.1.1",
+    "pytest-html>=4.2.0",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.16.8",
+    "selenium>=4.49.0",
+]
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = "-v --alluredir=allure-results --html=reports/report.html --self-contained-html"
+markers = [
+    "smoketest: marks tests as a quick smoke test",
+    "regressiontest: marks tests as part of the full regression suite"
+]
